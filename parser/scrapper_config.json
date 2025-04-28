@@ -1,26 +1,23 @@
 {
     "seed_urls": [
-        "https://iz.ru/feed",
-        "https://www.mk.ru/news/",
-        "https://rg.ru/news.html"
+        "https://iz.ru/rubric/mir"
     ],
-    "num_articles": 10,
-    "apikey": "0334013d496e4e3470d7edff8e9382c0fb764cd1",
+    "num_articles": 500,
+    "apikey": "49440a84081a1d2f6b04b54feac9f8b414dd3d01",
     "params": {
-        "url": "https://iz.ru/feed",
-        "apikey": "13ffac4e1ff2c5e4a0c76fa147a6c515187960b1",
-        "js_render": true,
-        "premium_proxy": true
+        "url": "https://iz.ru/rubric/mir",
+        "apikey": "49440a84081a1d2f6b04b54feac9f8b414dd3d01"
     },
     "headers": {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        "accept-language": "ru-RU,ru;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "cross-site",
-        "sec-fetch-storage-access": "active",
-        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "accept-encoding": "gzip, deflate, br",
+        "accept-language": "ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3",
+        "connection": "keep-alive",
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "none",
+        "sec-fetch-user": "?1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/111.0"
     },
     "encoding": "utf8",
     "timeout": 40,

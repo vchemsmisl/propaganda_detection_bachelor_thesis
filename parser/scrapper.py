@@ -6,6 +6,12 @@ import time
 import random
 
 from selenium.webdriver import Chrome, ChromeOptions
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import (NoSuchElementException,
+                                        StaleElementReferenceException,
+                                        TimeoutException)
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.common.exceptions import WebDriverException
 from constants import get_current_directory, ARTICLES_PATH, CRAWLING_STATUS_PATH
 
@@ -97,15 +103,15 @@ def make_request(url: str, config: Config) -> requests.models.Response:
     :param config: Crawler's configurations
     :return: result of a request as a Response class instance
     """
-    sleep_time = random.randint(1, 10)
+    sleep_time = random.randint(1, 20)
     time.sleep(sleep_time)
 
     if '//iz' in url:
         params = config.get_params()
-        params[url] = url
+        params['url'] = url
         response = requests.get('https://api.zenrows.com/v1/',
-                                headers=config.get_headers(),
-                                timeout=config.get_timeout(),
+                                # headers=config.get_headers(),
+                                # timeout=config.get_timeout(),
                                 params=params)
 
     else:
@@ -138,10 +144,33 @@ def make_request_selenium(url: str,
     if mode == 'pressing a button':
         return driver.page_source
     else:
-        while count_scrolls < num_scrolls:
-            driver.execute_script("window.scrollTo(0,document.body.scrollHeight - 1500);")
-            time.sleep(5)
-            count_scrolls += 1
+        while count_scrolls <= num_scrolls:
+
+            if 'mk.ru' in url:
+                if count_scrolls in [0, 1, 2]:
+                    driver.execute_script("window.scrollTo(0,document.body.scrollHeight - 1650);")
+
+                else:
+                    try:
+                        load_more_button = WebDriverWait(driver, 20).until(
+                            ec.visibility_of_element_located((By.CLASS_NAME, "LoadMoreBtn_wrapper__A7ItH   "))
+                        )
+                        driver.execute_script("arguments[0].scrollIntoView();", load_more_button)
+                        driver.execute_script("arguments[0].click();", load_more_button)
+
+                        time.sleep(10)
+                        # driver.execute_script("window.scrollTo(0,document.body.scrollHeight - 1700);")
+
+                    except (NoSuchElementException, TimeoutException):
+                       print('Crawling error')
+
+                time.sleep(10)
+                count_scrolls += 1
+
+            elif 'iz' in url:
+                driver.execute_script("window.scrollTo(0,document.body.scrollHeight);")
+                time.sleep(10)
+                count_scrolls += 1
 
     return driver.page_source
 
@@ -171,13 +200,34 @@ class Crawler:
         """
         match seed_url:
 
-            case 'https://iz.ru/feed':
-                url = 'https://iz.ru' + article_bs.get('href')
+            case 'https://iz.ru/rubric/politika':
+                if article_bs.find('div').get('data-type') == 'news':
+                    url = 'https://iz.ru' + article_bs.find(
+                        'a', {'class': 'node__cart__item__inside'}).get('href')
+                else:
+                    return ''
 
-            case 'https://rg.ru/news.html':
+            case 'https://iz.ru/rubric/armiia':
+                if article_bs.find('div').get('data-type') == 'news':
+                    url = 'https://iz.ru' + article_bs.find(
+                        'a', {'class': 'node__cart__item__inside'}).get('href')
+                else:
+                    return ''
+
+            case 'https://iz.ru/rubric/mir':
+                if article_bs.find('div').get('data-type') == 'news':
+                    url = 'https://iz.ru' + article_bs.find(
+                        'a', {'class': 'node__cart__item__inside'}).get('href')
+                else:
+                    return ''
+
+            case 'https://rg.ru/tema/mir':
                 url = 'https://rg.ru' + article_bs.get('href')
 
-            case 'https://www.mk.ru/news/':
+            case 'https://rg.ru/tema/gos':
+                url = 'https://rg.ru' + article_bs.get('href')
+
+            case 'https://www.mk.ru/news/2025/4/':
                 url = article_bs.get('href')
 
             case _:
@@ -198,22 +248,41 @@ class Crawler:
         for url in self._seed_urls:
 
             match url:
-                case 'https://rg.ru/news.html':  # crawling article links from Российская газета feed
+                case 'https://rg.ru/tema/gos':  # crawling article links from Российская газета feed
 
                     options = ChromeOptions()
                     options.add_argument('--headless')
                     driver = Chrome(options=options)
                     response = make_request_selenium(url,
                                                      driver,
-                                                     num_arts // 10,
+                                                     num_arts // 50,
                                                      mode='scrolling')
 
                     main_bs = BeautifulSoup(response, 'lxml')
-                    feed_lines_div = main_bs.find_all('div',
-                                                      {'class': 'PageNewsContent_item__ZDNam'})
-                    feed_lines = [bs.find('a') for bs in feed_lines_div]
+                    feed_lines_li = main_bs.find_all('div',
+                                                      {'class': 'PageRubricContent_listItem__KVIae'})
+                    feed_lines = [bs.find('a') for bs in feed_lines_li]
+                    feed_lines = feed_lines[:num_arts]
 
-                case 'https://iz.ru/feed':  # crawling article links from Известия feed
+
+                case 'https://rg.ru/tema/mir':  # crawling article links from Российская газета feed
+
+                    options = ChromeOptions()
+                    options.add_argument('--headless')
+                    driver = Chrome(options=options)
+                    response = make_request_selenium(url,
+                                                     driver,
+                                                     num_arts // 50,
+                                                     mode='scrolling')
+
+                    main_bs = BeautifulSoup(response, 'lxml')
+                    feed_lines_li = main_bs.find_all('div',
+                                                     {'class': 'PageRubricContent_listItem__KVIae'})
+                    feed_lines = [bs.find('a') for bs in feed_lines_li]
+                    feed_lines = feed_lines[:num_arts]
+
+
+                case 'https://iz.ru/rubric/politika':  # crawling article links from Известия feed
 
                     if not CRAWLING_STATUS_PATH.exists():
                         responses_list = []
@@ -224,43 +293,78 @@ class Crawler:
                         responses_list = crawling_status['crawled_pages']
                         num_crawled = crawling_status['crawled_pages_num']
 
-                    for n_iter in range(num_crawled + 1, num_arts // 25):
-                        response = make_request(f'https://iz.ru/feed?page={n_iter}', self.config)
+                    for n_iter in range(num_crawled + 1, num_arts // 16 + 1):
+                        response = make_request(f'https://iz.ru/rubric/politika?page={n_iter}', self.config)
                         responses_list.append(response.text)
-                        with open(CRAWLING_STATUS_PATH, 'w', encoding='utf-8') as ff:
-                            crawling_status_dict = {
-                                'crawled_pages': responses_list,
-                                'crawled_pages_num': n_iter
-                            }
-                            json.dump(crawling_status_dict, ff)
 
-                    with open(CRAWLING_STATUS_PATH, 'r', encoding='utf-8') as fff:
-                        crawling_status_ = json.load(fff)
-                        responses_list = crawling_status_['crawled_pages']
                     feed_lines = []
                     for resp in responses_list:
                         main_bs = BeautifulSoup(resp, 'lxml')
-                        feed_lines_sub = main_bs.find_all('a',
-                                {'class': 'lenta_news__day__list__item show_views_and_comments'})
+                        feed_lines_bs = main_bs.find('div', {'class': 'four-col-news'})
+                        feed_lines_sub = feed_lines_bs.find_all('div',
+                                {'class': 'node__cart__item show_views_and_comments'})
                         feed_lines.extend(feed_lines_sub)
+                    feed_lines = feed_lines[:num_arts]
 
-                case 'https://www.mk.ru/news/':  # crawling article links from Московский комсомолец feed
+
+                case 'https://iz.ru/rubric/armiia':  # crawling article links from Известия feed
+
+                    if not CRAWLING_STATUS_PATH.exists():
+                        responses_list = []
+                        num_crawled = 0
+                    else:
+                        with open(CRAWLING_STATUS_PATH, 'r', encoding='utf-8') as fff:
+                            crawling_status = json.load(fff)
+                        responses_list = crawling_status['crawled_pages']
+                        num_crawled = crawling_status['crawled_pages_num']
+
+                    for n_iter in range(num_crawled + 1, num_arts // 16 + 1):
+                        response = make_request(f'https://iz.ru/rubric/armiia?page={n_iter}', self.config)
+                        responses_list.append(response.text)
+
+                    feed_lines = []
+                    for resp in responses_list:
+                        main_bs = BeautifulSoup(resp, 'lxml')
+                        feed_lines_sub = main_bs.find_all('div',
+                                                          {'class': 'node__cart__item show_views_and_comments'})
+                        feed_lines.extend(feed_lines_sub)
+                    feed_lines = feed_lines[:num_arts]
+
+                case 'https://iz.ru/rubric/mir':  # crawling article links from Известия feed
+
+                    if not CRAWLING_STATUS_PATH.exists():
+                        responses_list = []
+                        num_crawled = 0
+                    else:
+                        with open(CRAWLING_STATUS_PATH, 'r', encoding='utf-8') as fff:
+                            crawling_status = json.load(fff)
+                        responses_list = crawling_status['crawled_pages']
+                        num_crawled = crawling_status['crawled_pages_num']
+
+                    for n_iter in range(num_crawled + 1, num_arts // 16 + 1):
+                        response = make_request(f'https://iz.ru/rubric/mir?page={n_iter}', self.config)
+                        responses_list.append(response.text)
+
+                    feed_lines = []
+                    for resp in responses_list:
+                        main_bs = BeautifulSoup(resp, 'lxml')
+                        feed_lines_sub = main_bs.find_all('div',
+                                                          {'class': 'node__cart__item show_views_and_comments'})
+                        feed_lines.extend(feed_lines_sub)
+                    feed_lines = feed_lines[:num_arts]
+
+
+                case 'https://www.mk.ru/news/2025/4/':  # crawling article links from Московский комсомолец feed
                     responses_list = []
-                    options = ChromeOptions()
-                    options.add_argument('--headless')
-                    driver = Chrome(options=options)
-                    response = make_request_selenium(url,
-                                                     driver,
-                                                     num_arts)
+                    response = make_request(f'https://www.mk.ru/news/',
+                                            self.config).text
                     responses_list.append(response)
-                    for n_iter in range(2, 5):
-                        options = ChromeOptions()
-                        options.add_argument('--headless')
-                        driver = Chrome(options=options)
-                        response = make_request_selenium(f'{url}{n_iter}/',
-                                                         driver,
-                                                         num_arts)
+                    for n_iter in range(24, 0, -1):
+                        response = make_request(f'https://www.mk.ru/news/2025/4/{n_iter}/',
+                                                self.config).text
                         responses_list.append(response)
+                        if len(responses_list) > num_arts // 50:
+                            break
 
                     feed_lines = []
                     for resp in responses_list:
@@ -268,16 +372,24 @@ class Crawler:
                         feed_lines_sub = main_bs.find_all('a',
                                                           {'class': 'news-listing__item-link'})
                         feed_lines.extend(feed_lines_sub)
+
                     feed_lines = feed_lines[:num_arts]
 
                 case _:
                     raise WrongSeedURLError('Entered URL isn\'t present in '
                                             'the "seed_urls" parameter of the config file')
 
+
             for line in feed_lines:
                 if link := self._extract_url(url, line):
                     if link not in self.urls:
-                        self.urls.append(link)
+
+                        match url:
+                            case 'https://www.mk.ru/news/2025/4/':
+                                if 'mk.ru/politics' in link:
+                                    self.urls.append(link)
+                            case _:
+                                self.urls.append(link)
 
     def get_search_urls(self) -> list:
         """
@@ -308,16 +420,31 @@ class Parser:
         """
 
         if '//rg' in self.full_url:
-            article = article_soup.find('div', {'class': ''})
+            article = article_soup.find('div', {
+                'class': 'PageArticleContent_content__mdxza'
+            })
             try:
                 article_list = article.find_all('p')
             except AttributeError:
-                article_list = []
+                try:
+                    article = article_soup.find('div', {
+                        'class': 'PageArticleContent_content__mdxza _inv'
+                    })
+                    article_list = article.find_all('p')
+                except AttributeError:
+                    article_list = []
             try:
-                article_lead = article.find('div', {'class': 'PageArticleContent_lead__gvX5C'})
+                article_lead = article_soup.find('div', {
+                    'class': 'PageArticleContent_lead__l9TkG commonArticle_zoom__SDMjc'
+                })
             except AttributeError:
                 article_lead = ''
             article_list.insert(0, article_lead)
+            try:
+                article_title = article_soup.find('h1', {'class': 'PageArticleCommonTitle_title__fUDQW'})
+            except AttributeError:
+                article_title = ''
+            article_list.insert(0, article_title)
 
         elif '//iz' in self.full_url:
             try:
@@ -325,10 +452,29 @@ class Parser:
                 article_list = article.find_all('p')
             except AttributeError:
                 article_list = []
+            try:
+                article_title = article_soup.find('h1', {'itemprop': 'headline'}).find('span')
+            except AttributeError:
+                article_title = ''
+            article_list.insert(0, article_title)
 
         elif 'mk.ru' in self.full_url:
-            article = article_soup.find('div', {'itemprop': 'articleBody'})
-            article_list = article.find_all('p')
+            article = article_soup.find('main', {'class': 'article'})
+            try:
+                article_body = article.find('div', {'class': 'article__body'})
+                article_list = article_body.find_all('p')
+            except AttributeError:
+                article_list = []
+            try:
+                article_lead = article.find('p', {'class': 'article__subtitle'})
+            except AttributeError:
+                article_lead = ''
+            article_list.insert(0, article_lead)
+            try:
+                article_title = article.find('h1', {'class': 'article__title'})
+            except AttributeError:
+                article_title = ''
+            article_list.insert(0, article_title)
 
         else:
             raise WrongSeedURLError('Entered URL isn\'t present in '
@@ -366,10 +512,13 @@ class Parser:
         options.add_argument('--headless')
         driver = Chrome(options=options)
 
-        try:
-            response = make_request_selenium(self.full_url, driver)
-        except WebDriverException:
-            return
+        # try:
+        #     response = make_request_selenium(self.full_url, driver)
+        # except WebDriverException:
+        #     print('Ошибка драйвера')
+        #     return
+        time.sleep(10)
+        response = make_request(self.full_url, self.config).text
 
         b_s = BeautifulSoup(response, 'lxml')
         text = self._extract_text(b_s)
