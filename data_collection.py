@@ -74,7 +74,19 @@ class DataCollector:
                      columns=['link', 'headline', 'text', 'source'])
 
         texts_df[['link', 'headline', 'text', 'source']] = links_df['articles_links'].apply(self._get_info_from_article)
-        texts_df.to_excel(self.dataset_path)
+        return texts_df
+
+    def preprocess_and_save_data(self, df):
+
+        preprocessed_df = (
+            df
+            .drop_duplicates()
+            .replace('', pd.NA)
+            .dropna()
+            .reset_index(drop=True)
+        )
+
+        preprocessed_df.to_excel(self.dataset_path)
 
 
 def collect_dataset():
@@ -84,7 +96,8 @@ def collect_dataset():
     if not LINKS_PATH.exists():
         data_collector.create_links_table()
 
-    data_collector.create_texts_table()
+    df = data_collector.create_texts_table()
+    data_collector.preprocess_and_save_data(df)
 
 
 if __name__ == '__main__':
