@@ -2,3 +2,7 @@ requests~=2.32.3
 beautifulsoup4~=4.13.4
 selenium~=4.31.0
 pandas~=2.2.3
+nltk~=3.9.1
+pymystem3~=0.2.0
+scikit-learn~=1.6.1
+numpy~=2.2.5

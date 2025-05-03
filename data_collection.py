@@ -1,5 +1,4 @@
 import pandas as pd
-from pathlib import Path
 import re
 from parser.constants import (
     ARTICLES_PATH,
