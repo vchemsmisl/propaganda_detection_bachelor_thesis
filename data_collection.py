@@ -1,7 +1,16 @@
 import pandas as pd
 from pathlib import Path
 import re
-from parser.constants import ARTICLES_PATH, LINKS_PATH, DATASET_PATH
+from parser.constants import (
+    ARTICLES_PATH,
+    LINKS_PATH,
+    DATASET_PATH,
+    PREPROCESSED_DATASET_PATH
+    )
+from pymystem3 import mystem
+import nltk
+nltk.download('stopwords')
+
 
 class DataCollector:
 
@@ -89,6 +98,38 @@ class DataCollector:
         preprocessed_df.to_excel(self.dataset_path)
 
 
+class DataPreprocessor:
+
+    def __init__(self, data_path):
+        self._raw_data = pd.read_excel(str(data_path)).drop(columns='Unnamed: 0')
+        self._preprocessed_data = None
+        self._word_document_matrix = None
+
+        self._analyzer = mystem.Mystem()
+        self._stop_words_rus = nltk.corpus.stopwords.words('russian')
+
+    def _preprocess_text(self, text):
+        text_no_enter = text.lower().replace('\n', ' ')
+        text_no_hyphen = text_no_enter.replace('-', ' ')
+        text_no_punct = re.sub(r"[!\"#$%&\\'()*+,\-—.\/:;<=>«»?@[\]\\^_`{|}~]",
+                               '', text_no_hyphen)
+
+        text_lemmatized = self._analyzer.lemmatize(text_no_punct)
+
+        text_without_stopwords = [word for word in text_lemmatized
+                                  if word not in self._stop_words_rus
+                                  and len(word) > 2]
+
+        return ' '.join(text_without_stopwords)
+
+    def preprocess_data(self):
+        self._preprocessed_data = self._raw_data.copy()
+        self._preprocessed_data['preprocessed_text'] = self._preprocessed_data['text'].apply(self._preprocess_text)
+
+    def save_preprocessed_data(self, preproc_data_path):
+        self._preprocessed_data.to_excel(str(preproc_data_path))
+
+
 def collect_dataset():
 
     data_collector = DataCollector(ARTICLES_PATH, LINKS_PATH, DATASET_PATH)
@@ -100,5 +141,14 @@ def collect_dataset():
     data_collector.preprocess_and_save_data(df)
 
 
+def preprocess_texts():
+
+    data_preprocessor = DataPreprocessor(DATASET_PATH)
+
+    data_preprocessor.preprocess_data()
+    data_preprocessor.save_preprocessed_data(PREPROCESSED_DATASET_PATH)
+
+
 if __name__ == '__main__':
-    collect_dataset()
+    # collect_dataset()
+    preprocess_texts()

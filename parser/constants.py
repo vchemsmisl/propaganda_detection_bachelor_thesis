@@ -7,8 +7,12 @@ CRAWLING_STATUS_PATH = PROJECT_ROOT / 'crawling_status.json'
 SENTENCES_EXTRACTION_STATUS_PATH = PROJECT_ROOT / 'sentences_extraction_status.json'
 
 ARTICLES_PATH = PROJECT_ROOT / 'articles'
-DATASET_PATH = PROJECT_ROOT.parent / 'news_dataset.xlsx'
-LINKS_PATH = PROJECT_ROOT.parent / 'links_dataset.xlsx'
+DATA_PATH = PROJECT_ROOT.parent / 'data'
+
+DATASET_PATH = DATA_PATH / 'news_dataset.xlsx'
+LINKS_PATH = DATA_PATH / 'links_dataset.xlsx'
+PREPROCESSED_DATASET_PATH = DATA_PATH / 'preprocessed_news_dataset.xlsx'
+
 CHROME_DRIVER_PATH = PROJECT_ROOT / 'chromedriver.exe'
 
 
