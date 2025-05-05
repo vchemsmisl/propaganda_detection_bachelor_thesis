@@ -149,5 +149,6 @@ def preprocess_texts():
 
 
 if __name__ == '__main__':
-    # collect_dataset()
+    pass
+    collect_dataset()
     preprocess_texts()
