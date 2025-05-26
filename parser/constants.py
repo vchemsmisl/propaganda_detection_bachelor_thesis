@@ -12,6 +12,8 @@ DATA_PATH = PROJECT_ROOT.parent / 'data'
 DATASET_PATH = DATA_PATH / 'news_dataset.xlsx'
 LINKS_PATH = DATA_PATH / 'links_dataset.xlsx'
 PREPROCESSED_DATASET_PATH = DATA_PATH / 'preprocessed_news_dataset.xlsx'
+LABELED_DATASET_PATH = DATA_PATH / 'propaganda_news_corpus.conll.txt'
+PREPARED_LABELED_DATASET_PATH = DATA_PATH / 'propaganda_news_labeled_prepared_corpus.xlsx'
 
 CHROME_DRIVER_PATH = PROJECT_ROOT / 'chromedriver.exe'
 

@@ -4,7 +4,9 @@ from parser.constants import (
     ARTICLES_PATH,
     LINKS_PATH,
     DATASET_PATH,
-    PREPROCESSED_DATASET_PATH
+    PREPROCESSED_DATASET_PATH,
+    LABELED_DATASET_PATH,
+    PREPARED_LABELED_DATASET_PATH
     )
 from pymystem3 import mystem
 import nltk
@@ -129,6 +131,53 @@ class DataPreprocessor:
         self._preprocessed_data.to_excel(str(preproc_data_path))
 
 
+class SLDataPreparator:
+
+    def __init__(self, data_path):
+        self._data_path = str(data_path)
+        self._prep_labeled_df = None
+
+    def preprocess_data(self):
+
+        all_tokens = []
+        all_tags = []
+        with open(self._data_path, 'r', encoding='utf-8') as f:
+
+            tokens = []
+            tags = []
+            for line in f:
+                line = line.strip()
+
+                if line == "":
+
+                    if set(tags) != {'O'}:
+                        all_tokens.append(tokens)
+                        all_tags.append(tags)
+
+                    tokens = []
+                    tags = []
+                else:
+                    parts = line.split()
+                    if len(parts) >= 4:
+                        tokens.append(parts[0])
+                        tags.append(parts[3])
+                    else:
+                        print(f"Error in line: {line}")
+            if tokens:
+                all_tokens.append(tokens)
+                all_tags.append(tags)
+
+        self._prep_labeled_df = pd.DataFrame(
+                                {
+                                    'tokens': all_tokens,
+                                    'tags': all_tags
+                                }
+                            )
+
+    def save_preprocessed_data(self, preproc_data_path):
+        self._prep_labeled_df.to_excel(str(preproc_data_path))
+
+
 def collect_dataset():
 
     data_collector = DataCollector(ARTICLES_PATH, LINKS_PATH, DATASET_PATH)
@@ -148,7 +197,16 @@ def preprocess_texts():
     data_preprocessor.save_preprocessed_data(PREPROCESSED_DATASET_PATH)
 
 
+def prepare_labeled_df():
+
+    data_preparator = SLDataPreparator(LABELED_DATASET_PATH)
+
+    data_preparator.preprocess_data()
+    data_preparator.save_preprocessed_data(PREPARED_LABELED_DATASET_PATH)
+
+
 if __name__ == '__main__':
-    pass
-    collect_dataset()
-    preprocess_texts()
+
+    # collect_dataset()
+    # preprocess_texts()
+    prepare_labeled_df()
